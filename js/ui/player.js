@@ -196,13 +196,11 @@ function wireTrackControls(tracksEl, songPlayer, tracks) {
     keySelect.addEventListener('change', applyPitch);
 
     octaveDownBtn.addEventListener('click', () => {
-      if (octave <= -1) return;
       octave -= 1;
       applyPitch();
     });
 
     octaveUpBtn.addEventListener('click', () => {
-      if (octave >= 1) return;
       octave += 1;
       applyPitch();
     });

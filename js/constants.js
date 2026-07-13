@@ -30,10 +30,11 @@ export const ALLOWED_MIME_TYPES = [
   'video/mp4',
 ];
 
-// Tone.PitchShift pierde calidad fuera de este rango cómodo; se permite
-// llegar hasta una octava completa pero se marca visualmente el límite fiable.
-export const SEMITONE_MIN = -12;
-export const SEMITONE_MAX = 12;
+// Tone.PitchShift no tiene un límite técnico real; se deja un rango amplio
+// (4 octavas en cada sentido) solo como tope de seguridad, y se avisa
+// visualmente cuando se sale del rango donde suena más limpio.
+export const SEMITONE_MIN = -48;
+export const SEMITONE_MAX = 48;
 export const SEMITONE_COMFORTABLE = 6;
 
 export const STORAGE_BUCKET = 'audio';
