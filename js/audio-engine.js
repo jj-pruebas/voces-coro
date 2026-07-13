@@ -71,6 +71,13 @@ export class VoiceTrack {
     console.log('[audio] worklet registrado, contexto:', nativeContext.state, 'sampleRate:', nativeContext.sampleRate);
 
     this.pitchShift = new SoundTouchNode({ context: nativeContext });
+    console.log(
+      '[audio] pitchShift channelCount:', this.pitchShift.channelCount,
+      'channelCountMode:', this.pitchShift.channelCountMode,
+      'numberOfInputs:', this.pitchShift.numberOfInputs,
+      'numberOfOutputs:', this.pitchShift.numberOfOutputs
+    );
+    this.pitchShift.port.onmessage = (e) => console.log('[audio] worklet metrics:', e.data);
 
     const playerOut = nativeOutputOf(this.player);
     const channelIn = nativeInputOf(this.channel);
