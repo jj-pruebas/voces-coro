@@ -50,7 +50,11 @@ export class VoiceTrack {
   // en vez de quedar en silencio sin ningún aviso.
   async load() {
     await ensureWorkletRegistered();
+    console.log('[audio] worklet registrado, contexto:', nativeContext.state, 'sampleRate:', nativeContext.sampleRate);
+
     this.pitchShift = new SoundTouchNode({ context: nativeContext });
+    console.log('[audio] SoundTouchNode creado', this.pitchShift, 'player.output:', this.player.output, 'channel.input:', this.channel.input);
+
     // Conexión nativa explícita (en vez de Tone.connect()/.chain()): .output
     // y .input de los nodos de Tone son los nodos nativos reales, así que
     // esto es una conexión Web Audio pura de extremo a extremo, sin
@@ -58,12 +62,14 @@ export class VoiceTrack {
     // AudioWorkletNode ajeno.
     this.player.output.connect(this.pitchShift);
     this.pitchShift.connect(this.channel.input);
+    console.log('[audio] pistas conectadas: player -> pitchShift -> channel');
 
     try {
       await this.player.load(this.url);
     } catch (err) {
       throw new Error(`No se pudo cargar el audio (${err && err.message ? err.message : err}).`);
     }
+    console.log('[audio] player cargado, duración:', this.player.buffer && this.player.buffer.duration);
     if (!this.player.loaded || !this.player.buffer || !(this.player.buffer.duration > 0)) {
       throw new Error(
         'El archivo se subió pero no se pudo decodificar como audio. Si es un video, prueba con un archivo de solo audio (mp3, m4a, wav).'
@@ -131,10 +137,12 @@ export class SongPlayer {
   // requisito de iOS Safari para desbloquear el AudioContext.
   static async unlock() {
     await Tone.start();
+    console.log('[audio] Tone.start() listo, estado del contexto nativo:', nativeContext.state);
   }
 
   playAll() {
     Tone.Transport.start();
+    console.log('[audio] Transport iniciado, estado:', Tone.Transport.state, 'contexto:', nativeContext.state);
   }
 
   pauseAll() {
