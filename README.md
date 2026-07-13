@@ -25,10 +25,16 @@ Proyecto personal, gratuito (sin tarjeta de crédito en ningún servicio):
    - Nombre: `audio`
    - Marca la casilla **Public bucket**
    - En "Additional configuration" (o al editar el bucket después de crearlo): límite de tamaño de archivo ≈ 40 MB, y tipos MIME permitidos: `audio/mpeg, audio/mp4, audio/aac, audio/x-m4a, audio/wav, audio/ogg, video/mp4`
-5. Ve a **Settings → API** y copia:
+5. **Importante:** que el bucket sea "público" solo permite *leer* archivos sin
+   login — para poder *subir* hace falta además una política de seguridad.
+   Ve al **SQL Editor**, pega el contenido de
+   [`supabase/migrations/0003_storage_policies.sql`](supabase/migrations/0003_storage_policies.sql)
+   y ejecútalo. Sin este paso, la app deja elegir el archivo pero la subida
+   falla en silencio.
+6. Ve a **Settings → API** y copia:
    - **Project URL**
    - **anon public key**
-6. Abre [`js/supabase-config.js`](js/supabase-config.js) y reemplaza los valores de `SUPABASE_URL` y `SUPABASE_ANON_KEY` con los que copiaste.
+7. Abre [`js/supabase-config.js`](js/supabase-config.js) y reemplaza los valores de `SUPABASE_URL` y `SUPABASE_ANON_KEY` con los que copiaste.
 
 ## 2. Subir el proyecto a GitHub
 
