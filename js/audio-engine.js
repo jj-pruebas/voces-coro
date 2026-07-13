@@ -33,6 +33,24 @@ function ensureWorkletRegistered() {
   return workletRegistration;
 }
 
+// Los nodos de Tone.js son composiciones de varios nodos nativos por dentro;
+// .output/.input pueden devolver otro objeto envuelto (ej. un Tone.Gain) en
+// vez del AudioNode nativo real. Esto "desenvuelve" hasta encontrar el nodo
+// nativo de verdad, sin importar cuántas capas tenga, para poder conectarlo
+// de forma nativa con un AudioWorkletNode ajeno a Tone.js (SoundTouchNode).
+function nativeOutputOf(node) {
+  let n = node;
+  let guard = 0;
+  while (n && !(n instanceof AudioNode) && guard++ < 5) n = n.output;
+  return n;
+}
+function nativeInputOf(node) {
+  let n = node;
+  let guard = 0;
+  while (n && !(n instanceof AudioNode) && guard++ < 5) n = n.input;
+  return n;
+}
+
 export class VoiceTrack {
   constructor(url, output) {
     this.url = url;
@@ -53,15 +71,15 @@ export class VoiceTrack {
     console.log('[audio] worklet registrado, contexto:', nativeContext.state, 'sampleRate:', nativeContext.sampleRate);
 
     this.pitchShift = new SoundTouchNode({ context: nativeContext });
-    console.log('[audio] SoundTouchNode creado', this.pitchShift, 'player.output:', this.player.output, 'channel.input:', this.channel.input);
 
-    // Tone.Channel es un nodo compuesto por dentro (su .input no es un
-    // AudioNode nativo puro, por eso conectarlo a mano con .connect() nativo
-    // fallaba con "Overload resolution failed"). Tone.connect() es la
-    // utilidad oficial de Tone.js para resolver esta mezcla nativo/Tone.js
-    // en cualquiera de los dos sentidos.
-    Tone.connect(this.player, this.pitchShift);
-    Tone.connect(this.pitchShift, this.channel);
+    const playerOut = nativeOutputOf(this.player);
+    const channelIn = nativeInputOf(this.channel);
+    console.log(
+      '[audio] nodos nativos resueltos — playerOut es AudioNode:', playerOut instanceof AudioNode,
+      'channelIn es AudioNode:', channelIn instanceof AudioNode
+    );
+    playerOut.connect(this.pitchShift);
+    this.pitchShift.connect(channelIn);
     console.log('[audio] pistas conectadas: player -> pitchShift -> channel');
 
     try {
