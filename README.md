@@ -1,9 +1,10 @@
 # Voces Coro
 
-App web para practicar armonías vocales: sube la melodía, 2da y 3ra voz de una
-canción (cada una etiquetada por cuerda: soprano/contralto/tenor/bajo), y
-cambia el tono/octava de cada pista en tiempo real desde el reproductor, sin
-tener que regrabar ni resubir audio.
+App web para practicar armonías vocales: sube tantas pistas como quieras por
+canción (melodía, 2da voz, 3ra voz, o cualquier otra que necesites), cada una
+etiquetada por cuerda (soprano/contralto/tenor/bajo), y cambia el tono/octava
+de cada pista en tiempo real desde el reproductor, sin tener que regrabar ni
+resubir audio. Las canciones se agrupan en secciones de Júbilo y Adoración.
 
 Proyecto personal, gratuito (sin tarjeta de crédito en ningún servicio):
 - **Datos y audio:** [Supabase](https://supabase.com) (plan gratuito)
@@ -16,14 +17,18 @@ Proyecto personal, gratuito (sin tarjeta de crédito en ningún servicio):
 2. En el panel del proyecto, ve a **SQL Editor → New query**, pega el contenido
    de [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) y ejecútalo (▶ Run).
    Esto crea las tablas `songs` y `tracks` con las políticas de acceso.
-3. Ve a **Storage** → **New bucket**:
+3. Pega también el contenido de
+   [`supabase/migrations/0002_pistas_flexibles.sql`](supabase/migrations/0002_pistas_flexibles.sql)
+   en una nueva query y ejecútalo. Añade categorías (Júbilo/Adoración), tonalidad
+   en letras (C, D, E...) y quita el límite de 3 pistas fijas por canción.
+4. Ve a **Storage** → **New bucket**:
    - Nombre: `audio`
    - Marca la casilla **Public bucket**
-   - En "Additional configuration" (o al editar el bucket después de crearlo): límite de tamaño de archivo ≈ 20 MB, y tipos MIME permitidos: `audio/mpeg, audio/mp4, audio/aac, audio/x-m4a, audio/wav, audio/ogg`
-4. Ve a **Settings → API** y copia:
+   - En "Additional configuration" (o al editar el bucket después de crearlo): límite de tamaño de archivo ≈ 40 MB, y tipos MIME permitidos: `audio/mpeg, audio/mp4, audio/aac, audio/x-m4a, audio/wav, audio/ogg, video/mp4`
+5. Ve a **Settings → API** y copia:
    - **Project URL**
    - **anon public key**
-5. Abre [`js/supabase-config.js`](js/supabase-config.js) y reemplaza los valores de `SUPABASE_URL` y `SUPABASE_ANON_KEY` con los que copiaste.
+6. Abre [`js/supabase-config.js`](js/supabase-config.js) y reemplaza los valores de `SUPABASE_URL` y `SUPABASE_ANON_KEY` con los que copiaste.
 
 ## 2. Subir el proyecto a GitHub
 
@@ -63,11 +68,23 @@ https://TU-USUARIO.github.io/voces-coro/
 ## Cómo funciona el cambio de tono
 
 Cada pista de audio se reproduce con [Tone.js](https://tonejs.github.io/), que
-permite subir o bajar el tono en semitonos **sin cambiar la velocidad** de la
-canción. El control deslizante de cada pista va de -12 a +12 semitonos (una
-octava completa hacia abajo o hacia arriba). Fuera de ±6 semitonos la calidad
-del audio puede notarse algo menos limpia (limitación del algoritmo); el
-recuadro de la pista se resalta cuando te sales de ese rango cómodo.
+permite subir o bajar el tono **sin cambiar la velocidad** de la canción. En
+vez de mover un número de semitonos a ciegas, el reproductor usa notación
+estadounidense de letras (C, C#, D, D#, E, F, F#, G, G#, A, A#, B):
+
+1. Al subir una pista, opcionalmente indicas en qué tono se grabó ("Tono en
+   que se grabó"). Si no lo indicas, se asume C.
+2. En el reproductor, cada pista tiene un selector **"Tonalidad objetivo"**:
+   eliges a qué nota quieres que suene y la app calcula sola los semitonos
+   necesarios.
+3. El botón **"±1 octava"** permite además subir o bajar una octava completa
+   sobre esa tonalidad — por ejemplo, para llevar una 3ra voz grabada en
+   tesitura de soprano a la tesitura de un barítono.
+
+El rango total va de -12 a +12 semitonos (una octava completa hacia abajo o
+hacia arriba). Fuera de ±6 semitonos la calidad del audio puede notarse algo
+menos limpia (limitación del algoritmo); el recuadro de la pista se resalta
+cuando te sales de ese rango cómodo.
 
 **Importante:** debes tocar primero "Reproducir todo" para que el audio se
 active — es un requisito de seguridad de Safari en iPhone (el sonido no puede
@@ -87,18 +104,20 @@ resto de la app.
 index.html              Página única
 css/styles.css           Estilos
 js/
-  constants.js            Constantes compartidas (cuerdas, slots, límites)
+  constants.js            Constantes compartidas (cuerdas, tonalidades, categorías, límites)
   debug.js                Consola de depuración para el iPhone (?debug=1)
   supabase-config.js       Credenciales públicas de Supabase (rellenar)
   supabase-init.js         Cliente de Supabase
   songs-repo.js            Lectura/escritura de canciones y pistas
-  upload.js                Subida de archivos de audio
+  upload.js                Subida de archivos de audio/video
   audio-engine.js           Motor de reproducción + cambio de tono (Tone.js)
   app.js                    Router de la app (lista / editor / reproductor)
   ui/
-    song-list.js
-    song-editor.js
-    player.js
-supabase/migrations/0001_init.sql   Esquema de base de datos
+    song-list.js             Lista agrupada por Júbilo/Adoración
+    song-editor.js            Alta de canción + pistas (número libre, sin límite fijo)
+    player.js                  Reproductor con selector de tonalidad + octava por pista
+supabase/migrations/
+  0001_init.sql              Esquema inicial
+  0002_pistas_flexibles.sql   Pistas sin slot fijo, tonalidad en letras, categorías
 manifest.webmanifest, service-worker.js, icons/   Soporte PWA
 ```

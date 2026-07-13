@@ -1,5 +1,5 @@
 import { listSongs } from '../songs-repo.js';
-import { SLOTS, SLOT_LABELS } from '../constants.js';
+import { CATEGORIES, CATEGORY_LABELS } from '../constants.js';
 
 export async function renderSongList(container) {
   container.innerHTML = `
@@ -7,34 +7,56 @@ export async function renderSongList(container) {
       <h1>Voces Coro</h1>
       <a class="btn btn-primary" href="#/nueva">+ Canción</a>
     </header>
-    <div id="song-list" class="list">Cargando…</div>
+    <div id="song-sections">Cargando…</div>
   `;
 
-  const listEl = container.querySelector('#song-list');
+  const sectionsEl = container.querySelector('#song-sections');
   try {
     const songs = await listSongs();
     if (songs.length === 0) {
-      listEl.innerHTML = `<p class="empty">Aún no hay canciones. Toca "+ Canción" para subir la primera.</p>`;
+      sectionsEl.innerHTML = `<p class="empty">Aún no hay canciones. Toca "+ Canción" para subir la primera.</p>`;
       return;
     }
-    listEl.innerHTML = songs.map(songCardHtml).join('');
+
+    const groups = { jubilo: [], adoracion: [], sin_categoria: [] };
+    for (const song of songs) {
+      const bucket = CATEGORIES.includes(song.category) ? song.category : 'sin_categoria';
+      groups[bucket].push(song);
+    }
+
+    const sectionOrder = [
+      ['jubilo', CATEGORY_LABELS.jubilo],
+      ['adoracion', CATEGORY_LABELS.adoracion],
+      ['sin_categoria', 'Sin categoría'],
+    ];
+
+    sectionsEl.innerHTML = sectionOrder
+      .filter(([key]) => groups[key].length > 0)
+      .map(
+        ([key, label]) => `
+          <section class="song-section">
+            <h2>${label}</h2>
+            <div class="list">${groups[key].map(songCardHtml).join('')}</div>
+          </section>
+        `
+      )
+      .join('');
   } catch (err) {
-    listEl.innerHTML = `<p class="error">No se pudo cargar la lista: ${escapeHtml(err.message)}</p>`;
+    sectionsEl.innerHTML = `<p class="error">No se pudo cargar la lista: ${escapeHtml(err.message)}</p>`;
   }
 }
 
 function songCardHtml(song) {
-  const bySlot = Object.fromEntries((song.tracks || []).map((t) => [t.slot, t]));
-  const chips = SLOTS.map((slot) => {
-    const has = !!bySlot[slot];
-    return `<span class="chip ${has ? 'chip-on' : 'chip-off'}">${SLOT_LABELS[slot]}</span>`;
-  }).join('');
+  const tracks = song.tracks || [];
+  const chips = tracks
+    .map((t) => `<span class="chip chip-on">${escapeHtml(t.label)}</span>`)
+    .join('');
 
   return `
     <a class="song-card" href="#/cancion/${song.id}">
       <div class="song-title">${escapeHtml(song.title)}</div>
       <div class="song-meta">${escapeHtml(song.artist || '')}${song.original_key ? ' · Tono original: ' + escapeHtml(song.original_key) : ''}</div>
-      <div class="chips">${chips}</div>
+      <div class="chips">${chips || '<span class="chip chip-off">Sin pistas</span>'}</div>
     </a>
   `;
 }

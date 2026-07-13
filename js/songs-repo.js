@@ -20,10 +20,16 @@ export async function getSong(id) {
   return data;
 }
 
-export async function createSong({ title, artist, originalKey, tags }) {
+export async function createSong({ title, artist, originalKey, category, tags }) {
   const { data, error } = await supabase
     .from('songs')
-    .insert({ title, artist: artist || null, original_key: originalKey || null, tags: tags || [] })
+    .insert({
+      title,
+      artist: artist || null,
+      original_key: originalKey || null,
+      category: category || null,
+      tags: tags || [],
+    })
     .select()
     .single();
   if (error) throw error;
@@ -46,13 +52,17 @@ export async function deleteSong(id) {
   if (error) throw error;
 }
 
-export async function upsertTrack(songId, slot, trackData) {
+export async function insertTrack(track) {
+  const { data, error } = await supabase.from('tracks').insert(track).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateTrack(trackId, patch) {
   const { data, error } = await supabase
     .from('tracks')
-    .upsert(
-      { song_id: songId, slot, ...trackData },
-      { onConflict: 'song_id,slot' }
-    )
+    .update(patch)
+    .eq('id', trackId)
     .select()
     .single();
   if (error) throw error;

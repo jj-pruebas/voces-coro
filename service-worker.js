@@ -1,7 +1,7 @@
 // Cachea solo el "app shell" (HTML/CSS/JS/iconos) para que la app cargue
 // rápido y offline. El audio (servido desde Supabase, otro origen) se deja
 // fuera del cache para no arriesgar servir una pista vieja tras resubirla.
-const CACHE_NAME = 'voces-coro-shell-v1';
+const CACHE_NAME = 'voces-coro-shell-v2';
 const SHELL_FILES = [
   './',
   './index.html',
