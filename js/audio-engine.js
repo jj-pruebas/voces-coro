@@ -13,12 +13,22 @@ import { SEMITONE_MIN, SEMITONE_MAX } from './constants.js';
 // El archivo del procesador de audio (obligatorio para AudioWorklet) está
 // copiado en ./vendor/soundtouch-processor.js para que cargue desde el mismo
 // origen, sin depender de un CDN externo.
+//
+// Tone.js envuelve su AudioContext interno, y ese envoltorio (Tone.getContext().
+// rawContext) no pasa la comprobación "instanceof BaseAudioContext" que exige
+// el constructor nativo de AudioWorkletNode. Por eso se crea aquí el
+// AudioContext nativo nosotros mismos y se le pide a Tone.js que lo use — así
+// se conserva una referencia directa al objeto nativo real para SoundTouchNode.
+const NativeAudioContext = window.AudioContext || window.webkitAudioContext;
+const nativeContext = new NativeAudioContext();
+Tone.setContext(nativeContext);
+
 const PROCESSOR_URL = new URL('./vendor/soundtouch-processor.js', import.meta.url);
 
 let workletRegistration = null;
 function ensureWorkletRegistered() {
   if (!workletRegistration) {
-    workletRegistration = SoundTouchNode.register(Tone.getContext().rawContext, PROCESSOR_URL);
+    workletRegistration = SoundTouchNode.register(nativeContext, PROCESSOR_URL);
   }
   return workletRegistration;
 }
@@ -40,7 +50,7 @@ export class VoiceTrack {
   // en vez de quedar en silencio sin ningún aviso.
   async load() {
     await ensureWorkletRegistered();
-    this.pitchShift = new SoundTouchNode({ context: Tone.getContext().rawContext });
+    this.pitchShift = new SoundTouchNode({ context: nativeContext });
     Tone.connect(this.player, this.pitchShift);
     Tone.connect(this.pitchShift, this.channel);
 
