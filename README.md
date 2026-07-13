@@ -73,36 +73,38 @@ https://TU-USUARIO.github.io/voces-coro/
 
 ## Cómo funciona el cambio de tono
 
-Cada pista de audio se reproduce con [Tone.js](https://tonejs.github.io/), que
-permite subir o bajar el tono **sin cambiar la velocidad** de la canción. En
-vez de mover un número de semitonos a ciegas, el reproductor usa notación
-estadounidense de letras (C, C#, D, D#, E, F, F#, G, G#, A, A#, B):
+Cada pista de audio se reproduce con [Tone.js](https://tonejs.github.io/)
+(reproducción, sincronía entre pistas, mute/solo) combinado con
+[SoundTouchNode](https://github.com/cutterbl/SoundTouchJS) (algoritmo WSOLA
+vía AudioWorklet) para el cambio de tono en sí — se probó primero con
+`Tone.PitchShift`, pero en el iPhone real sonaba con interferencia/saturación
+notable, así que se sustituyó solo esa pieza. Permite subir o bajar el tono
+**sin cambiar la velocidad** de la canción. En vez de mover un número de
+semitonos a ciegas, el reproductor usa notación estadounidense de letras (C,
+C#, D, D#, E, F, F#, G, G#, A, A#, B):
 
 1. Al subir una pista, opcionalmente indicas en qué tono se grabó ("Tono en
    que se grabó"). Si no lo indicas, se asume C.
 2. En el reproductor, cada pista tiene un selector **"Tonalidad objetivo"**:
    eliges a qué nota quieres que suene y la app calcula sola los semitonos
    necesarios.
-3. El botón **"±1 octava"** permite además subir o bajar una octava completa
-   sobre esa tonalidad — por ejemplo, para llevar una 3ra voz grabada en
-   tesitura de soprano a la tesitura de un barítono.
+3. El botón **"±1 octava"** (sin límite de toques) permite además subir o
+   bajar octavas completas sobre esa tonalidad — por ejemplo, para llevar una
+   3ra voz grabada en tesitura de soprano a la tesitura de un barítono.
 
-El rango total va de -12 a +12 semitonos (una octava completa hacia abajo o
-hacia arriba). Fuera de ±6 semitonos la calidad del audio puede notarse algo
-menos limpia (limitación del algoritmo); el recuadro de la pista se resalta
-cuando te sales de ese rango cómodo.
+El rango total va de -24 a +24 semitonos (dos octavas hacia abajo o hacia
+arriba). Fuera de ±6 semitonos la calidad del audio puede notarse algo menos
+limpia (limitación de cualquier algoritmo de pitch-shift); el recuadro de la
+pista se resalta cuando te sales de ese rango cómodo.
 
 **Importante:** debes tocar primero "Reproducir todo" para que el audio se
 active — es un requisito de seguridad de Safari en iPhone (el sonido no puede
 empezar solo, necesita un toque).
 
-## Si la calidad del pitch-shift no convence en el iPhone real
-
-El motor de audio vive aislado en [`js/audio-engine.js`](js/audio-engine.js).
-Si `Tone.PitchShift` no da buena calidad en pruebas reales, se puede sustituir
-solo esa pieza por [SoundTouchJS](https://github.com/cutterbl/SoundTouchJS)
-(mejor calidad, pero requiere más integración manual) sin tener que tocar el
-resto de la app.
+El motor de audio depende de `js/vendor/soundtouch-processor.js` (copiado del
+paquete `@soundtouchjs/audio-worklet`, no se edita a mano) para que el
+AudioWorklet cargue desde el mismo origen del sitio, sin depender de un CDN
+externo ni de configuración de CORS.
 
 ## Estructura del proyecto
 
@@ -116,7 +118,8 @@ js/
   supabase-init.js         Cliente de Supabase
   songs-repo.js            Lectura/escritura de canciones y pistas
   upload.js                Subida de archivos de audio/video
-  audio-engine.js           Motor de reproducción + cambio de tono (Tone.js)
+  audio-engine.js           Motor de reproducción + cambio de tono (Tone.js + SoundTouchNode)
+  vendor/soundtouch-processor.js   AudioWorklet de SoundTouchJS (copiado, no editar a mano)
   app.js                    Router de la app (lista / editor / reproductor)
   ui/
     song-list.js             Lista agrupada por Júbilo/Adoración
@@ -125,5 +128,6 @@ js/
 supabase/migrations/
   0001_init.sql              Esquema inicial
   0002_pistas_flexibles.sql   Pistas sin slot fijo, tonalidad en letras, categorías
+  0003_storage_policies.sql   Permisos para subir/reemplazar/borrar audio en Storage
 manifest.webmanifest, service-worker.js, icons/   Soporte PWA
 ```

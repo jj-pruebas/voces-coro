@@ -30,11 +30,10 @@ export const ALLOWED_MIME_TYPES = [
   'video/mp4',
 ];
 
-// Tone.PitchShift no tiene un límite técnico real; se deja un rango amplio
-// (4 octavas en cada sentido) solo como tope de seguridad, y se avisa
-// visualmente cuando se sale del rango donde suena más limpio.
-export const SEMITONE_MIN = -48;
-export const SEMITONE_MAX = 48;
+// SoundTouchNode admite pitchSemitones entre -24 y +24 (dos octavas en cada
+// sentido). Se avisa visualmente cuando se sale del rango donde suena más limpio.
+export const SEMITONE_MIN = -24;
+export const SEMITONE_MAX = 24;
 export const SEMITONE_COMFORTABLE = 6;
 
 export const STORAGE_BUCKET = 'audio';

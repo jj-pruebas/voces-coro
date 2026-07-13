@@ -3,7 +3,7 @@
 // ("network-first"): así los cambios llegan de inmediato en vez de quedar
 // atrapados detrás de una copia vieja en caché. El audio (servido desde
 // Supabase, otro origen) se deja fuera del cache.
-const CACHE_NAME = 'voces-coro-shell-v3';
+const CACHE_NAME = 'voces-coro-shell-v4';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const SHELL_FILES = [
   './js/songs-repo.js',
   './js/upload.js',
   './js/audio-engine.js',
+  './js/vendor/soundtouch-processor.js',
   './js/ui/song-list.js',
   './js/ui/song-editor.js',
   './js/ui/player.js',

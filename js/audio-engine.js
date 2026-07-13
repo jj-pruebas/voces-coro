@@ -1,29 +1,37 @@
 import * as Tone from 'https://esm.sh/tone@14.9.17';
+import { SoundTouchNode } from 'https://esm.sh/@soundtouchjs/audio-worklet@2.1.0';
 import { SEMITONE_MIN, SEMITONE_MAX } from './constants.js';
 
 // Pieza de mayor riesgo técnico del proyecto: pitch-shift en tiempo real en
-// Safari iOS. Cada pista usa Player -> PitchShift -> Channel -> bus maestro
-// (Limiter) -> salida. Todas las pistas se sincronizan vía Tone.Transport
-// para que "reproducir todo" empiece exactamente igual en todas las voces.
+// Safari iOS. Cada pista usa Player -> SoundTouchNode (AudioWorklet, WSOLA) ->
+// Channel -> bus maestro (Limiter) -> salida. Todas las pistas se sincronizan
+// vía Tone.Transport para que "reproducir todo" empiece igual en todas.
 //
-// Si en el iPhone real la calidad de Tone.PitchShift no convence, la ruta de
-// escape es sustituir SOLO el nodo `pitchShift` por un AudioWorkletNode de
-// SoundTouchJS conectado entre `player` y `channel`, sin tocar el resto de
-// esta clase ni la UI.
+// Se usa SoundTouchNode (paquete @soundtouchjs/audio-worklet) en vez de
+// Tone.PitchShift: en pruebas reales en iPhone, Tone.PitchShift sonaba con
+// interferencia/saturación notable, sobre todo al desplazar varios semitonos.
+// El archivo del procesador de audio (obligatorio para AudioWorklet) está
+// copiado en ./vendor/soundtouch-processor.js para que cargue desde el mismo
+// origen, sin depender de un CDN externo.
+const PROCESSOR_URL = new URL('./vendor/soundtouch-processor.js', import.meta.url);
+
+let workletRegistration = null;
+function ensureWorkletRegistered() {
+  if (!workletRegistration) {
+    workletRegistration = SoundTouchNode.register(Tone.getContext().rawContext, PROCESSOR_URL);
+  }
+  return workletRegistration;
+}
 
 export class VoiceTrack {
   constructor(url, output) {
     this.url = url;
-    // windowSize por defecto de Tone.js (0.1s): con ventanas más pequeñas el
-    // algoritmo de pitch-shift suena granulado/con interferencia, sobre todo
-    // en voz sostenida y al desplazar varios semitonos.
-    this.pitchShift = new Tone.PitchShift({ pitch: 0, windowSize: 0.1, delayTime: 0, feedback: 0 });
     // -6 dB de margen por pista: si varias pistas suenan a la vez a 0 dB
     // cada una, la suma puede saturar/distorsionar la salida final.
     this.channel = new Tone.Channel({ volume: -6, mute: false });
     this.channel.connect(output);
     this.player = new Tone.Player({ loop: false });
-    this.player.chain(this.pitchShift, this.channel);
+    this.pitchShift = null; // se crea en load(), tras registrar el AudioWorklet
   }
 
   // Carga explícita (en vez de confiar en Tone.loaded() global) para poder
@@ -31,6 +39,11 @@ export class VoiceTrack {
   // decodificar como audio (ej. un video sin pista de audio compatible),
   // en vez de quedar en silencio sin ningún aviso.
   async load() {
+    await ensureWorkletRegistered();
+    this.pitchShift = new SoundTouchNode({ context: Tone.getContext().rawContext });
+    Tone.connect(this.player, this.pitchShift);
+    Tone.connect(this.pitchShift, this.channel);
+
     try {
       await this.player.load(this.url);
     } catch (err) {
@@ -50,7 +63,7 @@ export class VoiceTrack {
 
   setSemitones(n) {
     const clamped = Math.max(SEMITONE_MIN, Math.min(SEMITONE_MAX, n));
-    this.pitchShift.pitch = clamped;
+    if (this.pitchShift) this.pitchShift.pitchSemitones.value = clamped;
     return clamped;
   }
 
@@ -73,7 +86,7 @@ export class VoiceTrack {
   dispose() {
     this.player.unsync();
     this.player.dispose();
-    this.pitchShift.dispose();
+    if (this.pitchShift) this.pitchShift.disconnect();
     this.channel.dispose();
   }
 }
