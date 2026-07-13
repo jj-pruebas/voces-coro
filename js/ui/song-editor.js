@@ -34,7 +34,7 @@ export async function renderSongEditor(container, songId) {
       <h2>Pistas de audio</h2>
       <div id="tracks-list"></div>
       <button type="button" id="add-track-btn" class="btn btn-large">+ Agregar pista</button>
-      <input type="file" id="add-track-input" accept="audio/*,video/mp4" class="hidden" />
+      <input type="file" id="add-track-input" class="hidden" />
       <div id="add-track-status" class="track-status"></div>
     </div>
   `;
@@ -206,7 +206,7 @@ function trackCardHtml(track) {
       </label>
       <label class="file-label">
         Reemplazar audio
-        <input type="file" accept="audio/*,video/mp4" data-field="replaceAudio" />
+        <input type="file" data-field="replaceAudio" />
       </label>
       <div class="track-status">Audio cargado (${formatSize(track.file_size_bytes)})</div>
       <button type="button" class="btn btn-danger btn-small" data-action="delete">Eliminar pista</button>

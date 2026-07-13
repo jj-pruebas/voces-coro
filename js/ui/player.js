@@ -76,7 +76,11 @@ export async function renderPlayer(container, songId) {
       masterPlayBtn.textContent = 'Cargando audio…';
       masterPlayBtn.disabled = true;
       await Promise.all(
-        tracks.map((track) => songPlayer.addTrack(track.id, publicAudioUrl(track.storage_path)))
+        tracks.map((track) =>
+          songPlayer.addTrack(track.id, publicAudioUrl(track.storage_path)).catch((err) => {
+            throw new Error(`"${track.label}": ${err.message}`);
+          })
+        )
       );
       loaded = true;
       masterPlayBtn.disabled = false;

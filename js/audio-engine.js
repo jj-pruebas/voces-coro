@@ -16,14 +16,25 @@ export class VoiceTrack {
     this.url = url;
     this.pitchShift = new Tone.PitchShift({ pitch: 0, windowSize: 0.06 });
     this.channel = new Tone.Channel({ volume: 0, mute: false }).toDestination();
-    this.player = new Tone.Player({ url, loop: false });
+    this.player = new Tone.Player({ loop: false });
     this.player.chain(this.pitchShift, this.channel);
-    this._loadPromise = null;
   }
 
+  // Carga explícita (en vez de confiar en Tone.loaded() global) para poder
+  // detectar y reportar con claridad cuando un archivo no se puede
+  // decodificar como audio (ej. un video sin pista de audio compatible),
+  // en vez de quedar en silencio sin ningún aviso.
   async load() {
-    if (!this._loadPromise) this._loadPromise = this.player.loaded ? Promise.resolve() : Tone.loaded();
-    await this._loadPromise;
+    try {
+      await this.player.load(this.url);
+    } catch (err) {
+      throw new Error(`No se pudo cargar el audio (${err && err.message ? err.message : err}).`);
+    }
+    if (!this.player.loaded || !this.player.buffer || !(this.player.buffer.duration > 0)) {
+      throw new Error(
+        'El archivo se subió pero no se pudo decodificar como audio. Si es un video, prueba con un archivo de solo audio (mp3, m4a, wav).'
+      );
+    }
     return this;
   }
 
