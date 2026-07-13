@@ -1,7 +1,9 @@
-// Cachea solo el "app shell" (HTML/CSS/JS/iconos) para que la app cargue
-// rápido y offline. El audio (servido desde Supabase, otro origen) se deja
-// fuera del cache para no arriesgar servir una pista vieja tras resubirla.
-const CACHE_NAME = 'voces-coro-shell-v2';
+// Cachea el "app shell" (HTML/CSS/JS/iconos) solo como respaldo offline.
+// Mientras hay red, siempre se pide la versión más nueva primero
+// ("network-first"): así los cambios llegan de inmediato en vez de quedar
+// atrapados detrás de una copia vieja en caché. El audio (servido desde
+// Supabase, otro origen) se deja fuera del cache.
+const CACHE_NAME = 'voces-coro-shell-v3';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -43,17 +45,14 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
