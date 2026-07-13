@@ -55,13 +55,13 @@ export class VoiceTrack {
     this.pitchShift = new SoundTouchNode({ context: nativeContext });
     console.log('[audio] SoundTouchNode creado', this.pitchShift, 'player.output:', this.player.output, 'channel.input:', this.channel.input);
 
-    // Conexión nativa explícita (en vez de Tone.connect()/.chain()): .output
-    // y .input de los nodos de Tone son los nodos nativos reales, así que
-    // esto es una conexión Web Audio pura de extremo a extremo, sin
-    // depender de que la utilidad de mezcla de Tone.js reconozca bien un
-    // AudioWorkletNode ajeno.
-    this.player.output.connect(this.pitchShift);
-    this.pitchShift.connect(this.channel.input);
+    // Tone.Channel es un nodo compuesto por dentro (su .input no es un
+    // AudioNode nativo puro, por eso conectarlo a mano con .connect() nativo
+    // fallaba con "Overload resolution failed"). Tone.connect() es la
+    // utilidad oficial de Tone.js para resolver esta mezcla nativo/Tone.js
+    // en cualquiera de los dos sentidos.
+    Tone.connect(this.player, this.pitchShift);
+    Tone.connect(this.pitchShift, this.channel);
     console.log('[audio] pistas conectadas: player -> pitchShift -> channel');
 
     try {
