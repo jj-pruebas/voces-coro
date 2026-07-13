@@ -51,8 +51,13 @@ export class VoiceTrack {
   async load() {
     await ensureWorkletRegistered();
     this.pitchShift = new SoundTouchNode({ context: nativeContext });
-    Tone.connect(this.player, this.pitchShift);
-    Tone.connect(this.pitchShift, this.channel);
+    // Conexión nativa explícita (en vez de Tone.connect()/.chain()): .output
+    // y .input de los nodos de Tone son los nodos nativos reales, así que
+    // esto es una conexión Web Audio pura de extremo a extremo, sin
+    // depender de que la utilidad de mezcla de Tone.js reconozca bien un
+    // AudioWorkletNode ajeno.
+    this.player.output.connect(this.pitchShift);
+    this.pitchShift.connect(this.channel.input);
 
     try {
       await this.player.load(this.url);
